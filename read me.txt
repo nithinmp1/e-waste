@@ -1,0 +1,122 @@
+/**** structure creation START****/
+
+mkdir jwt-project
+
+cd jwt-project
+
+npm init -y
+
+mkdir model middleware config
+
+touch config/database.js middleware/auth.js model/user.js
+
+touch app.js index.js
+
+/**** structure creation END ****/
+
+Step 3 - Install dependencies
+
+npm install mongoose express jsonwebtoken dotenv bcryptjs
+
+npm install nodemon -D
+
+Step 4 - Create a Node.js server and connect your database
+
+config/database.js:
+    const mongoose = require("mongoose");
+
+const { MONGO_URI } = process.env;
+
+exports.connect = () => {
+  // Connecting to the database
+  mongoose
+    .connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      useCreateIndex: true,
+      useFindAndModify: false,
+    })
+    .then(() => {
+      console.log("Successfully connected to database");
+    })
+    .catch((error) => {
+      console.log("database connection failed. exiting now...");
+      console.error(error);
+      process.exit(1);
+    });
+};
+
+jwt-project/app.js
+
+require("dotenv").config();
+require("./config/database").connect();
+const express = require("express");
+
+const app = express();
+
+app.use(express.json());
+
+// Logic goes here
+
+module.exports = app;
+
+jwt-project/index.js
+
+const http = require("http");
+const app = require("./app");
+const server = http.createServer(app);
+
+const { API_PORT } = process.env;
+const port = process.env.PORT || API_PORT;
+
+// server listening 
+server.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+
+.env
+
+API_PORT=4001
+
+MONGO_URI= //Your database URI here
+
+package.json  change
+
+"scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+
+
+Step 5 - Create user model and route
+
+model/user.js ;-
+
+const mongoose = require("mongoose");
+
+const userSchema = new mongoose.Schema({
+  first_name: { type: String, default: null },
+  last_name: { type: String, default: null },
+  email: { type: String, unique: true },
+  password: { type: String },
+  token: { type: String },
+});
+
+module.exports = mongoose.model("user", userSchema);
+
+
+in app.js
+
+// importing user context
+const User = require("./model/user");
+
+// Register
+app.post("/register", (req, res) => {
+// our register logic goes here...
+});
+
+// Login
+app.post("/login", (req, res) => {
+// our login logic goes here
+});
