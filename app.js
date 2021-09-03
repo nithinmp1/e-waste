@@ -1,30 +1,44 @@
 require("dotenv").config();
 require("./config/database").connect();
 
+const path = require("path");
 const express = require("express");
 const session = require('express-session');
 const cookieParser = require("cookie-parser");
-const mongoose = require("mongoose");
-
-const app = express();
-app.use(session({secret: 'ssshhhhh',saveUninitialized: true,resave: true}));
-var sess; // global session, NOT recommended
-
-var bcrypt = require('bcryptjs');
-var jwt = require('jsonwebtoken');
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }))
-app.use(cookieParser());
+const multer = require('multer');
 
 const User = require("./model/user");
 const Product = require("./model/product");
 const auth = require("./middleware/auth");
 
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads')
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + '-' + Date.now()+ path.extname(file.originalname))
+  }
+})
+ 
+var upload = multer({ storage: storage })
+const mongoose = require("mongoose");
+const app = express();
+var bcrypt = require('bcryptjs');
+var jwt = require('jsonwebtoken');
+
+app.use(session({secret: 'ssshhhhh',saveUninitialized: true,resave: true}));
+var sess; // global session, NOT recommended
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }))
+app.use(cookieParser());
+
+
+
 
 app.set('view engine', 'ejs');
 app.use(express.static('views'));
 app.use('/static', express.static('public'));
+app.use('/dir', express.static('uploads'));
 
 app.post("/welcome", auth, (req, res) => {
     res.status(200).send("Welcome 🙌 ");
@@ -33,7 +47,7 @@ app.post("/welcome", auth, (req, res) => {
 app.get("/", async(req, res) => {
   sess = req.session; 
     if(typeof sess.userToken !== "undefined" ){
-      const user = await User.findOne({"token":sess.userToken},{ _id : 0,__v : 0,userId :0 });
+      const user = await User.findOne({"_id":sess.userId},{ _id : 0,__v : 0,userId :0 });
       res.render('dashboard',{user});
     }else{
       res.render('login');
@@ -44,6 +58,18 @@ app.get("/logout",async(req,res) =>{
   sess = req.session; 
   req.session.destroy();
   res.redirect('/');
+});
+
+app.post("/updateProduct",auth,async(req,res)=>{
+  const filter = { product: 'p1' };
+  const update = { location: 'l1' };
+
+// `doc` is the document _after_ `update` was applied because of
+// `new: true`
+let doc = await Product.findOneAndUpdate(filter, update, {
+  new: true
+});
+res.json(doc);
 });
 
 app.get("/getProduct", auth, async(req, res) => {
@@ -84,6 +110,41 @@ app.post("/addNew", auth, async(req, res) => {
   } 
 });
 
+app.get("/settings", sessValidate,async(req,res)=>{
+    sess = req.session; 
+    const user = await User.findOne({"_id":sess.userId},{ _id : 0,__v : 0,userId :0 });
+    res.render('settings',{user});
+});
+
+app.post("/updateSettings", sessValidate ,upload.single('profilePic'),async(req,res)=>{
+  const file = req.file
+  if (!file) {
+    const error = new Error('Please upload a file')
+    error.httpStatusCode = 400
+    return next(error)
+  } 
+  sess = req.session; 
+  const filter = { _id: sess.userId };
+  const update = { profilePic: file.filename };
+
+// `doc` is the document _after_ `update` was applied because of
+// `new: true`
+let user = await User.findOneAndUpdate(filter, update, {
+  new: true
+});
+  res.render('settings',{user});
+});
+
+app.post('/uploadfile', upload.single('myFile'), (req, res, next) => {
+  const file = req.file
+  if (!file) {
+    const error = new Error('Please upload a file')
+    error.httpStatusCode = 400
+    return next(error)
+  }
+    res.send(file)
+  
+})
 
 // Logic goes here
 app.post("/register", async (req, res) => {
@@ -117,8 +178,9 @@ app.post("/register", async (req, res) => {
         last_name,
         email: email.toLowerCase(), // sanitize: convert email to lowercase
         password: encryptedPassword,
+        profilePic:"",
       });
-  
+   
       // Create token
       const token = jwt.sign(
         { user_id: user._id, email },
@@ -152,7 +214,7 @@ app.post("/login", async (req, res) => {
         res.status(400).send("All input is required");
       }else{
       // Validate if user exist in our database
-      const user = await User.findOne({"email":email},{ _id : 0,__v : 0,userId :0 });
+      const user = await User.findOne({"email":email},{ __v : 0,userId :0 });
       
       if (user && (await bcrypt.compare(password, user.password))) {
         // Create token
@@ -166,11 +228,9 @@ app.post("/login", async (req, res) => {
         // save user token
         user.token = token;
         sess = req.session;
-        sess.userToken = token;
-        console.log(sess.userToken);
-        console.log('hit');
+        sess.userId = user._id;
         // user
-
+        console.log(user);
         res.render('dashboard',{user});
       }else{
         res.status(400).send("Invalid Credentials");
@@ -182,7 +242,14 @@ app.post("/login", async (req, res) => {
     // Our register logic ends here
   });
   // ...
-
+function sessValidate(req,res,next){
+  sess = req.session;
+  if(typeof sess.userId !== "undefined" ){
+    next();
+  }else{
+    res.redirect('/');
+  }
+}
 module.exports = app;
 
 
