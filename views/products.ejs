@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Skydash Admin</title>
+  <!-- plugins:css -->
+  <link rel="stylesheet" href="static/vendors/feather/feather.css">
+  <link rel="stylesheet" href="static/vendors/ti-icons/css/themify-icons.css">
+  <link rel="stylesheet" href="static/vendors/css/vendor.bundle.base.css">
+  <!-- endinject -->
+  <!-- Plugin css for this page -->
+  <link rel="stylesheet" href="static/vendors/datatables.net-bs4/dataTables.bootstrap4.css">
+  <link rel="stylesheet" href="static/vendors/ti-icons/css/themify-icons.css">
+  <link rel="stylesheet" type="text/css" href="static/js/select.dataTables.min.css">
+  <!-- End plugin css for this page -->
+  <!-- inject:css -->
+  <link rel="stylesheet" href="static/css/vertical-layout-light/style.css">
+  <link rel="stylesheet" href="static/css/cart.css">
+  <!-- endinject -->
+  <link rel="shortcut icon" href="static/images/favicon.png" />
+</head>
+<body>
+  <div class="container-scroller">
+    <!-- partial:partials/_navbar.html -->
+    <%
+    if (typeof user != "undefined") { 
+     include('header')
+    }
+     %>;
+    <!-- partial -->
+    <div class="container-fluid page-body-wrapper">
+      <!-- partial:partials/_settings-panel.html -->
+      <%
+      if (typeof user != "undefined") { 
+    
+      include('notification')
+      }
+      %>;
+      <!-- partial -->
+      <!-- partial:partials/_sidebar.html -->
+      <% 
+      if (typeof user != "undefined") { 
+    
+      include('leftmenu')
+      }
+      %>;
+      <!-- partial -->
+      
+<div class="container">
+  <h1 style="font-weight:300">Products</h1>
+<div class="cart-table">
+<% 
+for ( let key in productAdded ) {
+<!-- for (let i = 0; i < cars.length; i++) { -->
+%>
+<div class="row cart-row">
+  <div class="col-xs-12 col-md-2">
+   <img src="dir/<%= productAdded[key].productImage %>" width="100%">
+ </div>
+ <div class="col-md-6">
+   <div class="product-articlenr">#<%-productAdded[key].productCode %></div>
+   <div class="product-name"><%-productAdded[key].productName %></div>
+   <div class="product-options"><span>Color:</span>
+    <% for (let key1 in productAdded[key].productColor){ %>
+      <div class="product-color" style="color: <%-productAdded[key].productColor[key1]%>;">
+        <button type="button" style="color: <%-productAdded[key].productColor[key1]%>;" data-toggle="tooltip" title="Ta bort" class="delete" onclick="cart.remove('643489');"><i class="fas fa-times-circle" style="color: <%-productAdded[key].productColor[key1]%>;"></i></button>
+      </div>
+    <% } %>
+    <br><span>Size:</span> <%-productAdded[key].productSize %></div>
+   <div class="product-price">
+       <input type="text" name="quantity[4]" value="1" size="1" class="form-control">
+       <button type="submit" data-toggle="tooltip" title="Uppdatera" class="update"><i class="fas fa-sync"></i></button>
+       <div class="product-price"><small>x</small> <%-productAdded[key].productPrice %> SEK</div>
+   </div>
+  </div>
+ <div class="col-md-3 cart-actions">
+   <div class="product-price-total"><%-productAdded[key].productPrice %> SEK</div>
+   <div class="product-delete">
+     <button type="button" data-toggle="tooltip" title="Ta bort" class="delete" onclick="add('<%-productAdded[key].productCode%>');"><i class="fas fa-times-circle"></i></button>
+     </div>
+ </div>
+</div><!-- cart-row-->
+
+
+<% } %>
+  
+</div>
+      <!-- main-panel ends -->
+    </div>
+    <!-- page-body-wrapper ends -->
+  </div>
+  <!-- container-scroller -->
+
+  <!-- plugins:js -->
+  <script src="static/vendors/js/vendor.bundle.base.js"></script>
+  <!-- endinject -->
+  <!-- Plugin js for this page -->
+  <script src="static/vendors/chart.js/Chart.min.js"></script>
+  <script src="static/vendors/datatables.net/jquery.dataTables.js"></script>
+  <script src="static/vendors/datatables.net-bs4/dataTables.bootstrap4.js"></script>
+  <script src="static/js/dataTables.select.min.js"></script>
+
+  <!-- End plugin js for this page -->
+  <!-- inject:js -->
+  <script src="static/js/off-canvas.js"></script>
+  <script src="static/js/hoverable-collapse.js"></script>
+  <script src="static/js/template.js"></script>
+  <script src="static/js/settings.js"></script>
+  <script src="static/js/todolist.js"></script>
+  <!-- endinject -->
+  <!-- Custom js for this page-->
+  <script src="static/js/dashboard.js"></script>
+  <script src="static/js/Chart.roundedBarCharts.js"></script>
+  <!-- End custom js for this page-->
+</body>
+
+</html>
+

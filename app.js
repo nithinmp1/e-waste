@@ -9,6 +9,7 @@ const multer = require('multer');
 
 const User = require("./model/user");
 const Product = require("./model/product");
+const adminProduct = require("./model/adminProduct");
 const auth = require("./middleware/auth");
 
 var storage = multer.diskStorage({
@@ -20,7 +21,8 @@ var storage = multer.diskStorage({
   }
 })
  
-var upload = multer({ storage: storage })
+var upload = multer({ storage: storage });
+
 const mongoose = require("mongoose");
 const app = express();
 var bcrypt = require('bcryptjs');
@@ -31,9 +33,7 @@ var sess; // global session, NOT recommended
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser());
-
-
-
+// app.use(bodyParser.urlencoded())
 
 app.set('view engine', 'ejs');
 app.use(express.static('views'));
@@ -44,6 +44,88 @@ app.post("/welcome", auth, (req, res) => {
     res.status(200).send("Welcome 🙌 ");
 });
 
+//Uploading multiple files
+app.post('/uploadmultiple', upload.array('myFiles', 12), (req, res, next) => {
+  const files = req.files
+  if (!files) {
+    const error = new Error('Please choose files')
+    error.httpStatusCode = 400
+    return next(error)
+  }
+ 
+    res.send(files)
+  
+});
+
+
+app.post("/addProducts",sessValidate,upload.array('productImage', 12),async(req,res,next)=>{
+  try  {
+    sess = req.session;
+    const files = req.files;
+    let productImageArr = [];
+    let responseMessage = {};
+    if (files) {
+      var i=0;
+      while (i < files.length ) {
+         productImageArr.push(files[0].filename);
+         i ++;
+      }
+    }
+    const { productName, productSize, productCount, productColor, productPrice} = req.body;
+    if((productName && productSize && productCount && productColor && productPrice) && productImageArr.length > 0){
+      // let productCode = (Math.random() + 1).toString(36).substring(7);
+      let productCode= '643489';
+      userId = mongoose.Types.ObjectId(sess.userId);
+      console.log(userId);
+      console.log(productCode);
+      const addedProduct = await adminProduct.create({
+        productCode,
+        userId,
+        productName,
+        productSize,
+        productCount,
+        productColor,
+        productPrice,
+        productImage : productImageArr,
+      });
+      responseMessage.status = true;
+      responseMessage.message = 'Added';
+      
+    }else{
+      responseMessage.status = false;
+      responseMessage.message = 'All inputs required';
+    }
+    const user = await User.findOne({"_id":sess.userId},{ _id : 0,__v : 0,userId :0 });
+    res.render('addProducts',{user,responseMessage});
+  }
+  catch(err) {
+    console.log(err.message);
+  }
+
+  
+});
+
+
+app.get('/products',sessValidate,async(req,res)=>{
+  sess = req.session; 
+  const user = await User.findOne({"_id":sess.userId},{ _id : 0,__v : 0,userId :0 });
+  const productAdded = await adminProduct.find(mongoose.Types.ObjectId(sess.userId), { _id : 0,__v : 0,userId :0 });
+  console.log(productAdded);
+  res.render('products',{user:user,productAdded:productAdded});
+});
+
+app.get('/productsList',async(req,res)=>{
+  const productAdded = await adminProduct.find({}, { _id : 0,__v : 0,userId :0 });
+  res.render('products',{productAdded:productAdded});
+});
+
+app.get("/addProducts",sessValidate,async(req,res)=>{
+  sess = req.session; 
+  const user = await User.findOne({"_id":sess.userId},{ _id : 0,__v : 0,userId :0 });
+  res.render('addProducts',{user});
+});
+
+ 
 app.get("/", async(req, res) => {
   sess = req.session; 
     if(typeof sess.userToken !== "undefined" ){
@@ -230,7 +312,6 @@ app.post("/login", async (req, res) => {
         sess = req.session;
         sess.userId = user._id;
         // user
-        console.log(user);
         res.render('dashboard',{user});
       }else{
         res.status(400).send("Invalid Credentials");
